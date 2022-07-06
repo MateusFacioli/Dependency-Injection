@@ -1,2 +1,2 @@
 # Dependency-Injection
-raywenderlich to study Dependency Injection in a Swift UI example
+ raywenderlich project used to study Dependency Injection with SwiftUI example
