@@ -31,10 +31,10 @@
 /// THE SOFTWARE.
 
 import Foundation
-
+import Combine
 import SwiftUI
 
-protocol ProfileContentProviderProtocol {
+protocol ProfileContentProviderProtocol: ObservableObject {
   var privacyLevel: PrivacyLevel { get }
   var canSendMessage: Bool { get }
   var canStartVideoChat: Bool { get }
@@ -43,46 +43,51 @@ protocol ProfileContentProviderProtocol {
   var friendsView: AnyView { get }
 }
 
-final class ProfileContentProvider: ProfileContentProviderProtocol {
+final class ProfileContentProvider<Store>: ProfileContentProviderProtocol
+  where Store: PreferencesStoreProtocol {
   let privacyLevel: PrivacyLevel
   private let user: User
+  private var store: Store
+  private var cancellables: Set<AnyCancellable> = []
 
   init(
     privacyLevel: PrivacyLevel = DIContainer.shared.resolve(type: PrivacyLevel.self)!,
-    user: User = DIContainer.shared.resolve(type: User.self)!
+    user: User = DIContainer.shared.resolve(type: User.self)!,
+    store: Store = DIContainer.shared.resolve(type: Store.self)!
   ) {
     self.privacyLevel = privacyLevel
     self.user = user
+    self.store = store
+
+    //subscribing to the publisher of PreferencesStoreProtocol.
+    store.objectWillChange.sink { _ in
+      self.objectWillChange.send()
+    }
+    .store(in: &cancellables)
   }
 
-  
-//  init(privacyLevel: PrivacyLevel, user: User) {
-//    self.privacyLevel = privacyLevel
-//    self.user = user
-//  }
-
   var canSendMessage: Bool {
-    privacyLevel > .everyone
+    privacyLevel >= store.messagePreference
   }
 
   var canStartVideoChat: Bool {
-    privacyLevel >  .friend //.everyone
+    privacyLevel >= store.videoCallsPreference
   }
 
   var photosView: AnyView {
-    privacyLevel >  .friend ? //.everyone ?
+    privacyLevel >= store.photosPreference ?
       AnyView(PhotosView(photos: user.photos)) :
       AnyView(EmptyView())
   }
 
   var feedView: AnyView {
-    privacyLevel > .everyone ?
+    privacyLevel >= store.feedPreference ?
       AnyView(HistoryFeedView(posts: user.historyFeed)) :
-      AnyView(RestrictedAccessView())
+      AnyView(EmptyView())
   }
 
   var friendsView: AnyView {
-    privacyLevel > .everyone ?
+    privacyLevel >= store.friendsListPreference ?
       AnyView(UsersView(title: "Friends", users: user.friends)) :
       AnyView(EmptyView())
   }

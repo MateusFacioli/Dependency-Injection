@@ -33,18 +33,14 @@
 
 import SwiftUI
 
-struct ProfileView: View {
-  //private let privacyLevel = PrivacyLevel.friend
-  private let user: User //= Mock.user()
-  private let provider: ProfileContentProviderProtocol
+struct ProfileView<ContentProvider>: View
+  where ContentProvider: ProfileContentProviderProtocol {
+  private let user: User
+  //subscribe to its publisher. The view reloads itself when it emits
+  @ObservedObject private var provider: ContentProvider
 
-//  init(provider: ProfileContentProviderProtocol, user: User) {
-//    self.provider = provider
-//    self.user = user
-//  }
-  
   init(
-    provider: ProfileContentProviderProtocol = DIContainer.shared.resolve(type: ProfileContentProviderProtocol.self)!,
+    provider: ContentProvider = DIContainer.shared.resolve(type: ContentProvider.self)!,
     user: User = DIContainer.shared.resolve(type: User.self)!
   ) {
     self.provider = provider
@@ -58,40 +54,37 @@ struct ProfileView: View {
         VStack {
           ProfileHeaderView(
             user: user,
-            canSendMessage: provider.canSendMessage, //privacyLevel == .friend,
-            canStartVideoChat: provider.canStartVideoChat //privacyLevel == .friend
+            canSendMessage: provider.canSendMessage,
+            canStartVideoChat: provider.canStartVideoChat
           )
-          //          if privacyLevel == .friend {
-          //            UsersView(title: "Friends", users: user.friends)
-          //            PhotosView(photos: user.photos)
-          //            HistoryFeedView(posts: user.historyFeed)
-          //          } else {
-          //            RestrictedAccessView()
-          //          }
           provider.friendsView
           provider.photosView
           provider.feedView
         }
       }.navigationTitle("Profile")
+        .navigationBarItems(trailing: Button(action: {}) {
+          NavigationLink(destination: UserPreferencesView<PreferencesStore>()) {
+            Image(systemName: "gear")
+          }
+        })
+      
     }
   }
 }
 
-//struct ProfileView_Previews: PreviewProvider {
-//  static var previews: some View {
-//    ProfileView()
-//  }
-//}
-
 struct ProfileView_Previews: PreviewProvider {
-  private static let user = Mock.user()
   static var previews: some View {
-    ProfileView(
-      provider: ProfileContentProvider(privacyLevel: .friend, user: user),
-      user: user)
+    typealias Provider = ProfileContentProvider<PreferencesStore>
+    let container = DIContainer.shared
+    container.register(type: PrivacyLevel.self, component: PrivacyLevel.friend)
+    container.register(type: User.self, component: Mock.user())
+    container.register(
+      type: PreferencesStore.self,
+      component: PreferencesStore())
+    container.register(type: Provider.self, component: Provider())
+    return ProfileView<Provider>()
   }
 }
-
 
 // MARK: - Profile views
 

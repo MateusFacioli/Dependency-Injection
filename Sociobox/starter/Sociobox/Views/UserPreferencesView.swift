@@ -33,19 +33,34 @@
 import SwiftUI
 import Combine
 
-struct UserPreferencesView: View {
+//exact type Store conforms to PreferencesStoreProtocol at runtime.
+
+struct UserPreferencesView<Store>: View where Store: PreferencesStoreProtocol {
+  
+  private var store: Store
+
+  //receiving the dependency insted of create a one
+  init(store: Store = DIContainer.shared.resolve(type: Store.self)!) {
+    self.store = store
+  }
+
   var body: some View {
     NavigationView {
       VStack {
-        PreferenceView(title: .photos, value: .friend) { _ in
+        PreferenceView(title: .photos, value: store.photosPreference) { value in
+          store.photosPreference = value
         }
-        PreferenceView(title: .friends, value: .friend) { _ in
+        PreferenceView(title: .friends, value: store.friendsListPreference) { value in
+          store.friendsListPreference = value
         }
-        PreferenceView(title: .feed, value: .friend) { _ in
+        PreferenceView(title: .feed, value: store.feedPreference) { value in
+          store.feedPreference = value
         }
-        PreferenceView(title: .videoCall, value: .friend) { _ in
+        PreferenceView(title: .videoCall, value: store.videoCallsPreference) { value in
+          store.videoCallsPreference = value
         }
-        PreferenceView(title: .message, value: .friend) { _ in
+        PreferenceView(title: .message, value: store.messagePreference) { value in
+          store.messagePreference = value
         }
         Spacer()
       }
@@ -102,6 +117,6 @@ struct PreferenceMenu: View {
 
 struct UserPreferencesView_Previews: PreviewProvider {
   static var previews: some View {
-    UserPreferencesView()
+    UserPreferencesView(store: PreferencesStore())
   }
 }

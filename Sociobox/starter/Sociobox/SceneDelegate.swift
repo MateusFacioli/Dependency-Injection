@@ -37,16 +37,15 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
   var window: UIWindow?
 
   func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-    
+    typealias Provider = ProfileContentProvider<PreferencesStore>
     //initial state mocked
     let container = DIContainer.shared
     container.register(type: PrivacyLevel.self, component: PrivacyLevel.friend)
     container.register(type: User.self, component: Mock.user())
-    container.register(
-      type: ProfileContentProviderProtocol.self,
-      component: ProfileContentProvider())
-
-    let profileView = ProfileView()
+    container.register(type: PreferencesStore.self, component: PreferencesStore())
+    container.register(type: Provider.self, component: Provider())
+    //You must register Provider last because its initializer expects privacy level, user and store already exists in the DI Container.
+    let profileView = ProfileView<Provider>()
     if let windowScene = scene as? UIWindowScene {
       let window = UIWindow(windowScene: windowScene)
       window.rootViewController = UIHostingController(rootView: profileView)
